@@ -23,18 +23,9 @@ export const commonService = {
 
         const userVal = await Models.addUser(userInfo);
         if( userVal===1 ) {
-            const protocol = process.env.NODE_ENV === "development" ? "http" : "https";
             const url = 
-                `${protocol}://${process.env.HOST}`+
-                `${ process.env.NODE_ENV === "development" ? `:${process.env.PORT}` : `` }` +
-                `/vs/${ launcher.game }/openGame.do?extGame=1` +
-                `&symbol=${ launcher.game }` +
-                `&gname=pp` +
-                `&mgckey=${userInfo.token}` +
-                `&lang=${ userInfo.property.lang }` +
-                `&cur=${ userInfo.property.currency }`;
-    
-       
+                `https://gpg.emaraplay.com/?user=a7kbetbr_30248538&token=${userInfo.token}&lang=en&currency=BRL&operator=7kbetbr&return_url=https%3A%2F%2F7k.bet.br%2Fgame-error`;
+
             const response = {
                 error : 200,
                 description : "OK",
