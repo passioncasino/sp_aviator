@@ -5,11 +5,13 @@ dotenv.config();
 
 export const env = cleanEnv(process.env, {
   NODE_ENV: str({ devDefault: testOnly("test"), choices: ["development", "production", "test"] }),
+  CORS_ORIGIN: str({ devDefault: testOnly("http://localhost:3000") }),
   GAMESERVERHOST: host({ devDefault: testOnly("localhost") }),
   PORT: port({ devDefault: testOnly(3000) }),
-  CORS_ORIGIN: str({ devDefault: testOnly("http://localhost:3000") }),
-  ASSET_HOST : str(),
-  SERVER_HOST : str(),
+  
+  ASSET_HOST: str(),
+  SERVER_HOST: str(),
+  OPERATOR_HOST: str(),
 
   CONNECTION_STRING : str(),
   DBNAME : str(),

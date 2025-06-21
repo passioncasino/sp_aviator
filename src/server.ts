@@ -1,4 +1,3 @@
-import fs from 'fs';
 import cors from "cors";
 import helmet from "helmet";
 import { pino } from "pino";
@@ -13,7 +12,7 @@ import requestLogger from "@/common/middleware/requestLogger";
 
 import { healthCheckRouter } from "@/api/healthCheck/healthCheckRouter";
 
-import { gameRouter } from "@/router";
+import { apiRouter } from "@/router";
 
 const logger = pino({ name: "server start" });
 const app: Express = express();
@@ -30,10 +29,11 @@ connect(String(env.DBNAME) ).then( async (loaded) => {
         app.use(cors({ origin: "*", credentials: true }));
         app.use(helmet());
         app.use(requestLogger);
-        app.get('/', async( req, res ) => {
+        app.get('/:game', async( req, res ) => {
+            const game = req.params.game;
             res.render('aviator/index')
         })
-        app.use('/gs2c', gameRouter);
+        app.use('/api', apiRouter);
         
         app.use(errorHandler());
     }

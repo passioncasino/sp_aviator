@@ -1,11 +1,20 @@
 import express, { Request, Response, Router } from 'express';
 import { commonService } from '@/api/game/commonService';
+import { ILauncherParams } from './api/utill/interface';
 
-export const gameRouter: Router = (() => {
+export const apiRouter: Router = (() => {
     const router = express.Router();
 
-    router.post('/get_launcher_url', async (req: Request, res: Response) => {
-        const params: any = req.body;
+    router.post('/start-game-v2', async (req: Request, res: Response) => {
+        const { slug, platform, use_demo } = req.query;
+        const { user, lang, currency } = req.body;
+        const params: ILauncherParams = {
+            game: slug as string,
+            lang: lang,
+            currency: currency,
+            user: user
+        };
+        console.log(`params=`, params);
         const launcher = await commonService.provideLauncher( params );
         res.send( launcher );
     });

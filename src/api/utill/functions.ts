@@ -1,20 +1,15 @@
-import { v4 as uuidv4 } from "uuid";
+import { customAlphabet } from 'nanoid';
 
 let round = 0;
 
-
 export const getCurrentTime = () => {
-    return new Date().getTime();
+    return Date.now();
 }
 
-export const generateToken = async( mode:string, key1:string, key2:string ) => {
-    const now = Date.now().toString();
-    const data = new TextEncoder().encode(`${key1}:${key2}:${now}`);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const tt = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
-    const uuid = uuidv4();
-    const token = `${ mode==="real"? "AUTH" : "FUN" }TOKEN@${tt}~stylename@generic~SESSION@${uuid}`;
-    return "a7kbetbr-30248538-a9ec1d2dfe75db61ef8af22c558266e7a148bb316a92ead075dbb583bafc0099";
+export const generateToken = ( user:string ) => {
+    const nanoidHex = customAlphabet('0123456789abcdefghijklmnopqrstuvwxyz', 64);
+    const suffix = nanoidHex();
+    return `a7kbetbr-30248538-${ suffix }`;
 }
 
 export const generateRoundNo = ( envID:number ) => {

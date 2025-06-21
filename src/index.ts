@@ -31,8 +31,6 @@ wss.on('connection', (ws: WebSocket, req: any) => {
         console.log(`here msg=`, msg)
       })
       break;
-    default:
-      break;
   }
 });
 
