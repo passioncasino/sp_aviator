@@ -5,6 +5,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 
 import { app, logger } from "@/server";
 import { env } from "@/common/utils/envConfig";
+import { aviatorService } from './api/game/aviator/service';
 
 const useHttps = env.USE_HTTPS;
 let server: any ;
@@ -25,10 +26,15 @@ const wss = new WebSocketServer({ server });
 wss.on('connection', (ws: WebSocket, req: any) => {
   const { url } = req;
   console.log(`WebSocket server is running on ws://${process.env.GAMESERVERHOST}, url=${url}`);
+  const msgHandler = async ( msgs: any[] ) => {
+    msgs.forEach((msg: Buffer) => ws.send( msg ));
+  };
+
   switch (url) {
     case "/BlueBox/websocket":
       ws.on(`message`, (msg) => {
-        console.log(`here msg=`, msg)
+        const msgs = aviatorService.handleMsg( msg );
+        msgHandler( msgs );
       })
       break;
   }

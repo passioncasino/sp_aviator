@@ -1,6 +1,6 @@
 import * as Models from '@/common/models/index';
+import { generateToken } from '@/api/utill/functions';
 import { ILauncherParams } from '@/api/utill/interface';
-import { generateToken } from '../utill/functions';
 
 export const commonService = {
     provideLauncher:async( launcher: ILauncherParams ) => {

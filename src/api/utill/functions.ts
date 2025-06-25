@@ -9,13 +9,6 @@ export const getCurrentTime = () => {
 export const generateToken = ( user:string ) => {
     const nanoidHex = customAlphabet('0123456789abcdefghijklmnopqrstuvwxyz', 64);
     const suffix = nanoidHex();
+    return "a7kbetbr-30248538-a9ec1d2dfe75db61ef8af22c558266e7a148bb316a92ead075dbb583bafc0099";
     return `a7kbetbr-30248538-${ suffix }`;
-}
-
-export const generateRoundNo = ( envID:number ) => {
-    round++;
-    if( round>999 ) round = 0;
-    const now = getCurrentTime();
-    const roundNo = "" + Math.round(now/15000) + envID.toString().padStart(3, '0') + round.toString().padStart(3, '0');
-    return Number(roundNo);
 }

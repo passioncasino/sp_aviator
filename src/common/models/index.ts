@@ -31,14 +31,12 @@ const createUserInfo = async ( userInfo:any, oldUser:any, state: number ) => {
          * state=1 user and game exist
          * state=2 same user but no game
          */
-        let oldFrStatus: any = {};
         let oldGameStatus: any = {};
         if( state>0 ) {
             if( userInfo.property.mode===0 ) userInfo.balance = oldUser.balance;
             if( state===1 ) {
                 oldGameStatus = oldUser.gameStatus;
-                oldFrStatus = oldUser.frStatus;
-                const isDelete = await Users.deleteOne({ 
+                const isDelete = await Users.deleteOne({
                     token:oldUser.token
                 });
             }
@@ -46,7 +44,6 @@ const createUserInfo = async ( userInfo:any, oldUser:any, state: number ) => {
         userInfo = initUserInfo( userInfo );
         if( state===1 ) {
             userInfo.gameStatus = oldGameStatus
-            userInfo.frStatus = oldFrStatus
         }
         const res = await Users.insertOne( userInfo );
         if( res.insertedId ) return 1;
