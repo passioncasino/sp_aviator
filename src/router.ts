@@ -1,5 +1,5 @@
 import express, { Request, Response, Router } from 'express';
-import { commonService } from '@/api/game/commonService';
+import { apiHandler } from '@/api/apiHandler';
 import { ILauncherParams } from './api/utill/interface';
 
 export const apiRouter: Router = (() => {
@@ -7,15 +7,16 @@ export const apiRouter: Router = (() => {
 
     router.post('/start-game-v2', async (req: Request, res: Response) => {
         const { slug, platform, use_demo } = req.query;
-        const { user, lang, currency } = req.body;
+        const { username, lang, currency, operator, return_url } = req.body;
         const params: ILauncherParams = {
             game: slug as string,
             lang: lang,
             currency: currency,
-            user: user
+            username: username,
+            operator: operator,
+            return_url: return_url
         };
-        console.log(`params=`, params);
-        const launcher = await commonService.provideLauncher( params );
+        const launcher = await apiHandler.provideLauncher( params );
         res.send( launcher );
     });
 

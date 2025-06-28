@@ -1,5 +1,6 @@
 const SFS2X = require("sfs2x-api");
-const zlib = require('zlib');
+const pako = require('pako');
+// const zlib = require('zlib');
 
 const _CONTROLLER_ID = "c", _ACTION_ID = "a", _PARAM_ID = "p";
 
@@ -169,28 +170,30 @@ class DataStream {
 }
 
 const Zlib = {
-  Deflate(input) {
-    return {
-      compress() {
-        const buffer = Buffer.from(input);
-        const compressed = zlib.deflateSync(buffer);
-        return new Uint8Array(compressed);
-      }
-    };
-  },
+    Deflate(input) {
+        return {
+            compress() {
+                // const buffer = Buffer.from(input);
+                // const compressed = zlib.deflateSync(input);
+                const compressed = pako.deflate(input);
+                return new Uint8Array(compressed);
+            }
+        };
+    },
 
-  Inflate(input) {
-    return {
-      decompress() {
-        const buffer = Buffer.from(input);
-        const decompressed = zlib.inflateSync(buffer);
-        return new Uint8Array(decompressed);
-      }
-    };
-  }
+    Inflate(input) {
+        return {
+            decompress() {
+                // const buffer = Buffer.from(input);
+                // const decompressed = zlib.inflateSync(input);
+                const decompressed = pako.inflate(input);
+                return new Uint8Array(decompressed);
+            }
+        };
+    }
 };
 
-export const binaryToMsg = (msg) =>  {
+export const binaryToInfo = (msg) =>  {
     const readBuffer = new ArrayBuffer(msg.length);
     const readView = new Uint8Array(readBuffer);
     for (let i = 0; i < msg.length; i++) readView[i] = msg[i];
@@ -204,8 +207,6 @@ export const binaryToMsg = (msg) =>  {
     const controllerID = sfs2x.get(_CONTROLLER_ID);
     const paramInfo = sfs2x.get(_PARAM_ID);
 
-    console.log(`>----< action::${action}, controllerID::${controllerID} >----<`);
-    console.log("paramInfo =", paramInfo);
     return {
         action: action,
         cid: controllerID,
@@ -217,11 +218,11 @@ const uint8ArrayToHexArray = (uint8arr) => {
     return Array.from(uint8arr, byte => '0x' + byte.toString(16).padStart(2, '0'));
 }
 
-export const msgToBinary = ( aid, cid, paramObj ) => {
+export const InfoToBinary = ( aid, cid, paramObj ) => {
     const sfsObject = new SFS2X.SFSObject;
-    sfsObject.put(_CONTROLLER_ID, cid, SFS2X.SFSDataType.BYTE);
-    sfsObject.put(_ACTION_ID, aid, SFS2X.SFSDataType.SHORT);
     sfsObject.put(_PARAM_ID, paramObj, SFS2X.SFSDataType.SFS_OBJECT);
+    sfsObject.put(_ACTION_ID, aid, SFS2X.SFSDataType.SHORT);
+    sfsObject.put(_CONTROLLER_ID, cid, SFS2X.SFSDataType.BYTE);
     let binaryData = sfsObject.toBinary();
     let binaryLength = binaryData.byteLength;
     let writer = new DataStream(new ArrayBuffer(0), 0, false);
