@@ -6,7 +6,14 @@ declare interface SchemeUser {
         username: string
         profileImage: string
         operator: string
+        session: string
     },
+    gameStatus: {
+        isInit: boolean
+        betAmount: number
+        betId: number
+        freeBet: boolean
+    }
     settings: {
         music: boolean
         sound: boolean
@@ -16,17 +23,21 @@ declare interface SchemeUser {
 }
 
 declare interface SchemeGame {
-    roundId: number
-    multiplier: number
     maxMultiplier: number
+    endDate: number
+    zone: string
+    roundStartDate: number
+    roundId: number
+    serverSeed: string
 }
 
-declare interface SchemePlyer {
-    bet: number
-    player_id: string
-    betId: number
-    profileImage: string
+declare interface SchemePlayer {
     username: string
+    roundId: number
+    winAmount: number
+    multiplier: number
+    betId: number
+    freeBet: boolean
 }
 
 declare interface SchemeHistory {

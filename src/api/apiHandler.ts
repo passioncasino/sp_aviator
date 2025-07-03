@@ -1,18 +1,19 @@
 import * as Models from '@/api/models/index';
-import { generateToken } from '@/api/utill/functions';
+import { generateRandString } from '@/api/utill/functions';
 import { ILauncherParams, IUserInfo } from '@/api/utill/interface';
 
 export const apiHandler = {
     provideLauncher:async( launcher: ILauncherParams ) => {
+        
         const userInfo: IUserInfo = {
             game : launcher.game,
             lang : launcher.lang,
-            token: generateToken( launcher.username ),
+            token: generateRandString( launcher.username, 64, 0 ),
             balance: 10000,
-            // userId : `${launcher.username}&&${launcher.operator}`,
             username : launcher.username,
             currency : launcher.currency,
-            operator : launcher.operator
+            operator : launcher.operator,
+            session : generateRandString( launcher.username, 32, 1 ),
         };
 
         const userVal = await Models.insertUser( userInfo );
