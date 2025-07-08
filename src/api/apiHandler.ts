@@ -1,6 +1,7 @@
-import * as Models from '@/api/models/index';
+import * as storeUtils from '@/api/models/index';
 import { generateRandString } from '@/api/utill/functions';
 import { ILauncherParams, IUserInfo } from '@/api/utill/interface';
+import { CurrencyList } from './utill/global';
 
 export const apiHandler = {
     provideLauncher:async( launcher: ILauncherParams ) => {
@@ -11,12 +12,12 @@ export const apiHandler = {
             token: generateRandString( launcher.username, 64, 0 ),
             balance: 10000,
             username : launcher.username,
-            currency : launcher.currency,
+            currency : CurrencyList.indexOf(launcher.currency),
             operator : launcher.operator,
-            session : generateRandString( launcher.username, 32, 1 ),
+            session : "",
         };
 
-        const userVal = await Models.insertUser( userInfo );
+        const userVal = await storeUtils.insertUser( userInfo );
         if( userVal===1 ) {
             const url = 
                 `${process.env.OPERATOR_HOST}/aviator?` +

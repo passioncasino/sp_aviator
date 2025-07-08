@@ -2,45 +2,62 @@ declare interface SchemeUser {
     balance: number
     property: {
         game: string
-        // userId: string
         username: string
         profileImage: string
         operator: string
         session: string
+        currency: number
+        socketId: string
     },
     gameStatus: {
         isInit: boolean
-        betAmount: number
-        betId: number
-        freeBet: boolean
+        lastRound: number
+        stake: number
+        f: {
+            betAmount: number
+            betId: number
+            freeBet: boolean
+            autoCashOut: number
+        }
+        s: {
+            betAmount: number
+            betId: number
+            freeBet: boolean
+            autoCashOut: number
+        }
     }
-    settings: {
-        music: boolean
-        sound: boolean
-        secondBet: boolean
-        animation: boolean
-    }
+    // settings: {
+    //     music: boolean
+    //     sound: boolean
+    //     secondBet: boolean
+    //     animation: boolean
+    // }
 }
 
 declare interface SchemeGame {
-    maxMultiplier: number
-    endDate: number
-    zone: string
-    roundStartDate: number
     roundId: number
+    maxMultiplier: number
+    roundStartDate: number
+    roundEndDate: number
     serverSeed: string
+    // zone: string
 }
 
 declare interface SchemePlayer {
     username: string
     roundId: number
+    betAmount: number
     winAmount: number
     multiplier: number
+    cashOutDate: number
     betId: number
     freeBet: boolean
+    currency: number
+    profileImage: string
+    cashOutDate: number
+    roundBetId: number
 }
 
-declare interface SchemeHistory {
-    roundId: number
+declare interface SchemeHistory extends SchemePlayer {
     maxMultiplier: number
 }

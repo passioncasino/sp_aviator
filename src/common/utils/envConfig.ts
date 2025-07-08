@@ -20,4 +20,6 @@ export const env = cleanEnv(process.env, {
   SSL_CERTIFICATE: str(),
   SSL_CA_BUNDLE: str(),
   USE_HTTPS: bool({ default: false }),
+
+  SEED_KEY: str()
 });

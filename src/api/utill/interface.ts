@@ -13,7 +13,7 @@ export interface IUserInfo {
     token: string
     balance: number
     username: string
-    currency: string
+    currency: number
     operator: string
     session: string
 }
@@ -29,13 +29,6 @@ export interface TsfsItem {
     value: boolean | number | string | any[]
 }
 
-export interface IStaticMsgParam {
-    _aid: number
-    _cid: number
-    controller: string
-    cFlag: boolean
-}
-
 export interface IAct0Params {
     ct: number
     ms: number
@@ -43,13 +36,9 @@ export interface IAct0Params {
 }
 
 export interface IAct1Params {
-    username: string
-    // settings: {
-    //     music: boolean
-    //     sound: boolean
-    //     secondBet: boolean
-    //     animation: boolean
-    // }
+    userId: string
+    balance: number
+    property: any
 }
 
 export interface Icoh {
@@ -84,4 +73,13 @@ export interface IUCCOParams {
     activePlayersCount: number
     totalCashOut: number
     topImages: string[]
+}
+
+// Player
+export interface IUPlayer {
+    roundId: number
+    username: string
+    cashout: number
+    multiplier: number
+    cashOutDate: number
 }

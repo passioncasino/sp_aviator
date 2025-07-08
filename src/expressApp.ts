@@ -5,7 +5,7 @@ import * as path from 'path';
 import express, { type Express } from 'express';
 
 import { apiRouter } from '@/router';
-import mongoUtils from '@/api/models';
+import { connect } from '@/api/models';
 import errorHandler from '@/common/middleware/errorHandler';
 import requestLogger from '@/common/middleware/requestLogger';
 
@@ -19,7 +19,7 @@ app.use(helmet({
 }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-mongoUtils.connect().then( async (loaded) => {
+connect().then( async (loaded) => {
     if( loaded ) {
         app.set("trust proxy", true);
         app.use(express.json());

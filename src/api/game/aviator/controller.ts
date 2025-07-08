@@ -1,13 +1,13 @@
-import { aviatorStatus } from "./global"
-import { IAct0Params, IAct1Params, IBet, Icoh, IUCCOParams, IucbParams } from "@/api/utill/interface";
-import modelUtils from "@/api/models";
+import * as storeUtils from "@/api/models";
+import avaiatorFuctions from '@/api/game/aviator/functions';
+import { generateRandString, generateServerSeed } from '@/api/utill/functions';
+import { aviatorStatus } from "../../utill/global"
 import { binaryToInfo, InfoToBinary } from '@/api/utill/spribe';
-import * as Functions from '@/api/game/aviator/functions';
-
-const username = "a7kbetbr_30248538";
+import { IAct0Params, IAct1Params, IBet, Icoh, IUCCOParams, IUPlayer } from "@/api/utill/interface";
+import { basename } from "path";
 
 export const msgHandler = {
-    getResponseMsg: async( msg: any ) => {
+    getResponseMsg: async( msg: any, socketId: string ) => {
         const binaryData: any = [];
         const cids: number[] = [];
         const actions: number[] = [];
@@ -18,146 +18,274 @@ export const msgHandler = {
         let msgData: any = null;
         
         actions.push( action );
-        cids.push( cid );
-        
-        const user = await modelUtils.getUserInfo( username );
-        if( user===3001 || user===500 ) return 0;
-        
-        console.log(`>-- round is ${ aviatorStatus.roundId }, state=${aviatorStatus.state} action=${action}, cid=${cid}, controller=${controller} --<`);
+        cids.push( cid );      
+      
+        console.log(`>---- socketId=${ socketId }, round is ${ aviatorStatus.roundId }, crashX=${ aviatorStatus.crashX }, state=${aviatorStatus.state} action=${action}, cid=${cid}, controller=${controller} ----<`);
 
         switch ( action ) {
             case 0:
                 aviatorStatus.state = 1;
                 aviatorStatus.multiplier = 1.00;
-                console.log(`here state is 1`);
                 const act0Param: IAct0Params = {
                     ct: 1024,
                     ms: 500000,
                     tk: "32a20f2bc3a0ee4dc33c88eecf0cd752"
                 }
-                msgParams = Functions.generateAct0Params( act0Param );
+                msgParams = avaiatorFuctions.generateAct0Params( act0Param );
                 break;
             case 1:
-                actions.push( 13 );
-                cids.push( 1 );
-                msgData = Functions.analyzeMsg( action, controller, paramInfo );
-                // console.log(`msgData = `, msgData);
-                const userInfo = await modelUtils.getUserInfo( msgData.un.split("&&")[0] );
+                msgData = avaiatorFuctions.analyzeMsg( action, controller, paramInfo );
+                const userInfo = await storeUtils.getUserInfo( msgData.un.split("&&")[ 0 ], "username" );
                 if( userInfo!==500 && userInfo!==3001 ) {
-                    const act1Param: IAct1Params = {
-                        username: msgData.un,
-                        // settings: userInfo.settings
+                    if( userInfo.property.username==msgData.un.split("&&")[ 0 ]) {
+                        const updateProperty = await storeUtils.updateUserProperty( userInfo.property.username, socketId, msgData.sessionToken );
+                        if( updateProperty!==501 ) {
+                            const act1Param: IAct1Params = {
+                                userId: msgData.un,
+                                balance: userInfo.balance,
+                                property: userInfo.property,
+                            }
+                            cids.push( 1 );
+                            actions.push( 13 );
+                            msgParams = avaiatorFuctions.generateAct1Params( act1Param );
+                        }
+                    } else {
+                        console.log(`wrong username`);
                     }
-                    msgParams = Functions.generateAct1Params( act1Param );
+                } else {
+                    console.log(`wrong user`);
                 }
                 break;
             case 13:
                 const pData = paramInfo._dataHolder.get("p").value._dataHolder;
-                msgData = Functions.analyzeMsg( action, controller, pData );
-                switch (controller) {
-                    case "betHandler":
-                        user.gameStatus.betAmount = msgData.bet;
-                        user.gameStatus.betId = msgData.betId;
-                        user.gameStatus.freeBet = msgData.freeBet;
-                        user.balance = Math.round( user.balance*100 - user.gameStatus.betAmount*100 ) / 100;
+                msgData = avaiatorFuctions.analyzeMsg( action, controller, pData );
+                if( 
+                    controller==="betHandler" || 
+                    controller==="betHistoryHandler" || 
+                    controller==="cancelBetHandler" ||
+                    controller==="cashOutHandler" 
+                ) {
+                    const user = await storeUtils.getUserInfo( socketId, "socket" );
+                    if( user===3001 || user===500 ) return 0;
 
-                        const betSecParam = {
-                            username,
-                            operator: user.property.operator,
-                            profile: user.property.profileImage
-                        }
-                        const betParams: IBet = { ...msgData, ...betSecParam }
-                        const player = {
-                            username: username,
-                            roundId: aviatorStatus.roundId,
-                            winAmount: 0,
-                            multiplier: 0,
-                            betId: msgData.betId,
-                            freeBet: msgData.freeBet
-                        };
-                        const isPlayer = await modelUtils.insertPlayer( player );
-                        console.log(`isPlayer = ${ isPlayer }`);
-                        msgParams = Functions.generateBetParams( betParams );
-                        break;
-                    case "cancelBetHandler":
-                        user.balance = Math.round( user.balance*100 + user.gameStatus.betAmount*100 ) / 100;
-                        msgParams = Functions.generateCBParams( msgData.betId, user.property.username, user.property.operator );
-                        break;
-                    case "cashOutHandler":
-                        console.log(`${controller}, multiplier=${aviatorStatus.multiplier}`);
-                        const cashout = Math.round( user.gameStatus.betAmount*aviatorStatus.multiplier*100 ) / 100;
+                    switch (controller) {
+                        case "betHandler":
+                            user.gameStatus.lastRound = aviatorStatus.roundId;
+                            if( msgData.betId===1 ) {
+                                user.gameStatus.f.betAmount = msgData.bet;
+                                user.gameStatus.f.freeBet = msgData.freeBet;
+                                if( msgData.autoCashOut!==undefined ) user.gameStatus.f.autoCashOut = msgData.autoCashOut;
+                            } else {
+                                user.gameStatus.s.betAmount = msgData.bet;
+                                user.gameStatus.s.freeBet = msgData.freeBet;
+                                if( msgData.autoCashOut!==undefined ) user.gameStatus.s.autoCashOut = msgData.autoCashOut;
+                            }
 
-                        const cashoutParams: Icoh = {
-                            username,
-                            operator: user.property.operator,
-                            betId: msgData.betId,
-                            betAmount: user.gameStatus.betAmount,
-                            multiplier: aviatorStatus.multiplier,
-                            cashout
-                        }
-                        msgParams = Functions.generateCashOutParams( cashoutParams );
-                        break;
-                    case "currentBetsInfoHandler":
-                        msgParams = Functions.generateCBIHParams();
-                        break;
-                    case "getHugeWinsInfoHandler":
-                        msgParams = Functions.generateHWIHParams();
-                        break;
-                    case "getTopRoundsInfoHandler":
-                        // const topRounds = await modelUtils.getTopRounds();
-                        msgParams = Functions.generateGTRIHParams();
-                        break;
-                    case "previousRoundInfoHandler":
-                        msgParams = Functions.generatePRIRParams();
-                        break;
-                    case "PING_REQUEST":
-                        msgParams = Functions.generatePingResponseParams();
-                        break;
-                    case "setPlayerSettingResponse":
-                        msgParams = Functions.generateSPSRParams();
-                        break;
+                            user.gameStatus.stake = Math.round( user.gameStatus.f.betAmount*100 + user.gameStatus.s.betAmount*100 )/100;
+                            user.balance = Math.round( user.balance*100 - user.gameStatus.stake*100 ) / 100;
+                            const betSecParam = {
+                                username: user.property.username,
+                                operator: user.property.operator,
+                                profile: user.property.profileImage
+                            }
+                            const betParams: IBet = { ...msgData, ...betSecParam };
+                            const player = {
+                                username: user.property.username,
+                                roundId: aviatorStatus.roundId,
+                                betAmount: user.gameStatus.stake,
+                                winAmount: 0,
+                                multiplier: 0,
+                                betId: msgData.betId,
+                                freeBet: msgData.freeBet,
+                                currency: user.property.currency,
+                                profileImage: user.property.profileImage,
+                                cashOutDate: aviatorStatus.roundStartDate,
+                                roundBetId: Date.now()
+                            };
+                            const isPlayer = await storeUtils.insertPlayer( player );
+                            const isBalance = await storeUtils.updateBalance( socketId, user.balance );
+                            msgParams = avaiatorFuctions.generateBetParams( betParams );
+                            break;
+                        case "betHistoryHandler":
+                            const betHistory = await storeUtils.getUserBetHistory( user.property.username );
+                            if( betHistory!==501 ) {
+                                msgParams = avaiatorFuctions.generateUserBetHistory( betHistory );
+                            }
+                            break;
+                        case "cancelBetHandler":
+                            let reward = 0;
+                            if( msgData.betId===1 ) {
+                                user.gameStatus.stake = Math.round( user.gameStatus.stake*100-user.gameStatus.f.betAmount*100 )/ 100;
+                                reward = Math.round( reward*100+user.gameStatus.f.betAmount*100 )/ 100;
+                                user.gameStatus.f.betAmount = 0;
+                                user.gameStatus.f.autoCashOut = 0;
+                            } else {
+                                user.gameStatus.stake = Math.round( user.gameStatus.stake*100-user.gameStatus.s.betAmount*100 )/ 100;
+                                reward = Math.round( reward*100+user.gameStatus.s.betAmount*100 )/ 100;
+                                user.gameStatus.s.betAmount = 0;
+                                user.gameStatus.s.autoCashOut = 0;
+                            }
+                            user.balance = Math.round( user.balance*100 + reward*100 ) / 100;
+                            user.gameStatus.lastRound = 0;
+                            msgParams = avaiatorFuctions.generateCBParams( msgData.betId, user.property.username, user.property.operator );
+                            const isBalance1 = await storeUtils.updateBalance( socketId, user.balance );
+                            const cancelPlayer = await storeUtils.deletePlayer( user.property.username, msgData.betId );
+                            break;
+                        case "cashOutHandler":
+                            user.gameStatus.lastRound = 0;
+                            const cashout = Math.round( user.gameStatus.stake*aviatorStatus.multiplier*100 ) / 100;
+                            const uPlayer: IUPlayer = {
+                                roundId: aviatorStatus.roundId,
+                                username: user.property.username,
+                                cashout,
+                                multiplier: aviatorStatus.multiplier,
+                                cashOutDate: Date.now()
+                            }
+
+                            if( msgData.betId===1 ) {
+                                user.gameStatus.stake = Math.round( user.gameStatus.stake*100-user.gameStatus.f.betAmount*100 )/ 100;
+                                user.gameStatus.f.betAmount = 0;
+                                user.gameStatus.f.autoCashOut = 0;
+                            } else {
+                                user.gameStatus.stake = Math.round( user.gameStatus.stake*100-user.gameStatus.s.betAmount*100 )/ 100;
+                                user.gameStatus.s.betAmount = 0;
+                                user.gameStatus.s.autoCashOut = 0;
+                            }
+
+                            const isUpdate = await storeUtils.updatePlayer( uPlayer );
+                            if( isUpdate===1 ) {
+                                const cashoutParams: Icoh = {
+                                    username: user.property.username,
+                                    operator: user.property.operator,
+                                    betId: msgData.betId,
+                                    betAmount: user.gameStatus.stake,
+                                    multiplier: aviatorStatus.multiplier,
+                                    cashout
+                                }
+                                msgParams = avaiatorFuctions.generateCashOutParams( cashoutParams );
+                            }
+                            break;
+                    }
+                    
+                    if( controller==="betHandler" || 
+                        controller==="cancelBetHandler" || 
+                        controller==="cashOutHandler" 
+                    ) {
+                        await storeUtils.updateUserGameStatus( user.property.username, user.gameStatus );
+                    }
+                } else {
+                    switch (controller) {
+                        case "changeProfileImageHandler":
+                            console.log(`${controller} `, msgData.profile);
+                            await storeUtils.updateUserProfile( socketId, msgData.profile );
+                            msgParams = avaiatorFuctions.generateCPIHParams( msgData.profile );
+                            break;
+                        case "currentBetsInfoHandler":
+                            const players = await storeUtils.getPlayerList( 0 );
+                            if( players !== 501 ) {
+                                msgParams = avaiatorFuctions.generateCBIHParams( players );
+                            } else {
+                                console.log(`players=${players}`);
+                            }
+                            break;
+                        case "getHugeWinsInfoHandler":
+                            const hugeWins = await storeUtils.getHugeWinInfo();
+                            if( hugeWins!==501 ) msgParams = avaiatorFuctions.generateHWIHParams( hugeWins );
+                            break;
+                        case "getTopRoundsInfoHandler":
+                            const topRounds = await storeUtils.getTopRounds();
+                            if( topRounds!==501 ) msgParams = avaiatorFuctions.generateGTRIHParams( topRounds );
+                            else console.log(`topRounds =`, topRounds );
+                            break;
+                        case "getTopWinsInfoHandler":
+                            const topWins = await storeUtils.getTopWins();
+                            if( topWins!==501 ) msgParams = avaiatorFuctions.generateGTWIParams( topWins );
+                            break;
+                        case "previousRoundInfoHandler":
+                            const prevGameInfo = await storeUtils.getPrevGameInfo( aviatorStatus.roundId-1, 0 );
+                            console.log(`prevGameInfo =`, prevGameInfo);
+                            if( prevGameInfo!==501 ) {
+                                if( prevGameInfo!==1 ) {
+                                    msgParams = avaiatorFuctions.generatePRIRParams( prevGameInfo.prevGame, prevGameInfo.prevBets );
+                                } else {
+    
+                                }
+                            } else {
+    
+                            }
+                            break;
+                        case "PING_REQUEST":
+                            msgParams = avaiatorFuctions.generatePingResponseParams();
+                            break;
+                        case "roundFairnessHandler":
+                            const roundGame = await storeUtils.getPrevGameInfo( msgData.roundId, 1 );
+                            if( roundGame !== 501 ) {
+                                if( roundGame !== 1 ) {
+                                    msgParams = avaiatorFuctions.generateRFHParams( roundGame.prevGame );
+                                }
+                            }
+                            break;
+                        case "serverSeedHandler":
+                            msgParams = avaiatorFuctions.generateServerSeed( aviatorStatus.serverSeed );
+                            break;
+                        case "setPlayerSettingHandler":
+                            msgParams = avaiatorFuctions.generateSPSRParams();
+                            break;
+                    }
                 }
                 break;
         }
-        await modelUtils.updateUserInfo( username, user.gameStatus );
         msgParams.forEach(( obj, ind ) => {
             const msgData = InfoToBinary( actions[ ind ], cids[ ind ], obj );
             binaryData.push( msgData );
         });
         return binaryData;
     },
-    getGameMultiplier: () => {
+    getGameMultiplier: async () => {
         let binaryArr: any[] = [];
         let resParamArr: any[] = [];
         let paramObj: any = null;
         let cid=1;
-        /**
-         * ucco stands for updateCurrentCashOuts, 
-         */
         let uccoFlag = false; 
 
-        console.log(`getGameMultiplier roundStartDate=${aviatorStatus.roundStartDate}, state=${aviatorStatus.state}, step=${aviatorStatus.step}, multiplier=${aviatorStatus.multiplier} `);
+        // console.log(`getGameMultiplier state=${aviatorStatus.state}, step=${aviatorStatus.step}, multiplier=${aviatorStatus.multiplier}, crashX=${ aviatorStatus.crashX }, serverSeed=${ aviatorStatus.serverSeed } `);
 
         if ( aviatorStatus.state===0 ) {
             const moment = Date.now();
             if( aviatorStatus.step===0 && moment-aviatorStatus.roundEndDate>200 ) {
                 aviatorStatus.step++;
-                paramObj = Functions.generateRCIParams( aviatorStatus.multiplier, aviatorStatus.roundId );
+                paramObj = avaiatorFuctions.generateRCIParams( aviatorStatus.multiplier, aviatorStatus.roundId );
+                // console.log(`aviatorStatus =`, aviatorStatus);
+                const prevGame = {
+                    roundId: aviatorStatus.roundId,
+                    maxMultiplier: aviatorStatus.multiplier,
+                    roundStartDate: aviatorStatus.roundStartDate,
+                    roundEndDate: aviatorStatus.roundEndDate,
+                    serverSeed: aviatorStatus.serverSeed,
+                }
+                await storeUtils.insertPreviousGame( prevGame );
             } else if( aviatorStatus.step===1 && moment-aviatorStatus.roundEndDate>5700 ) { // gameStart
-                aviatorStatus.multiplier = 1;
+                await storeUtils.updatePlayersAfterCrash( aviatorStatus.roundId, aviatorStatus.multiplier );
                 aviatorStatus.step++;
                 aviatorStatus.roundId++;
-                paramObj = Functions.generateCSParams( aviatorStatus.roundId, 1 );
+                aviatorStatus.multiplier = 1;
+                aviatorStatus.serverSeed = generateRandString( "", 40, 1 );
+                const seed = generateServerSeed();
+                // aviatorStatus.serverSeed = "tbBo8zliYnt66ehGwLSOV7NfTLBEjUkMjazljevE";
+                paramObj = avaiatorFuctions.generateCSParams( aviatorStatus.roundId, 1 );
             } else if( aviatorStatus.step===2 ) { // show animation
                 if( moment-aviatorStatus.roundEndDate>11000 ) {
-                    paramObj = Functions.generateCSParams( aviatorStatus.roundId, 2 );
+                    let rtp = 97;
+                    paramObj = avaiatorFuctions.generateCSParams( aviatorStatus.roundId, 2 );
                     aviatorStatus.step = 0;
                     aviatorStatus.state = 1;
+                    aviatorStatus.crashX = avaiatorFuctions.gameResult( rtp, aviatorStatus.serverSeed, ["xVRRVA3lM9cUnaH2zQnX", "ETDIy60W3vRNP1BgP8Rq"] );
                 }
             }
 
         } else if ( aviatorStatus.state===1 ) {
             if( aviatorStatus.multiplier===1 ) {
+                console.log(`getGameMultiplier crashX=${ aviatorStatus.crashX }, serverSeed=${ aviatorStatus.serverSeed } `);
                 aviatorStatus.roundStartDate = Date.now();
             }
             aviatorStatus.multiplier = Math.round( aviatorStatus.multiplier*100+1 ) / 100;
@@ -167,9 +295,9 @@ export const msgHandler = {
             if( aviatorStatus.multiplier > aviatorStatus.crashX-0.02 ) {
                 aviatorStatus.state++;
             }
-            paramObj = Functions.generateXParams( false, aviatorStatus.multiplier );
+            paramObj = avaiatorFuctions.generateXParams( false, aviatorStatus.multiplier );
         } else if( aviatorStatus.state==2 ) {
-            paramObj = Functions.generateXParams( true, aviatorStatus.crashX );
+            paramObj = avaiatorFuctions.generateXParams( true, aviatorStatus.crashX );
             aviatorStatus.roundEndDate = Date.now();
             aviatorStatus.state = 0;
             console.log(`ended ${ aviatorStatus.roundEndDate }`);
@@ -178,7 +306,7 @@ export const msgHandler = {
         if( !uccoFlag && paramObj !== null ) {
             resParamArr = resParamArr.concat( paramObj );
         }
-        if( uccoFlag ) {
+        if( uccoFlag ) { // updateCurrentCashOuts
             const topImages = [ 'av-26.png', 'av-63.png', 'av-50.png' ];
             const uccoParams: IUCCOParams = {
                 openBetsCount: 3915,
@@ -186,7 +314,7 @@ export const msgHandler = {
                 totalCashOut: 1690,
                 topImages
             }
-            paramObj = Functions.generateUCCOParams( uccoParams );
+            paramObj = avaiatorFuctions.generateUCCOParams( uccoParams );
             resParamArr = resParamArr.concat( paramObj );
         }
         if( resParamArr.length>0 ) {
@@ -195,11 +323,6 @@ export const msgHandler = {
                 binaryArr.push( msgData );
             });
         }
-        // const msgData = InfoToBinary( 13, cid, paramObj );
         return binaryArr;
     }
-}
-
-export const userInfoHandler = {
-
 }
