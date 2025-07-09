@@ -12,7 +12,7 @@ const socketServer = {
         const wss = new WebSocketServer({ server });
         wss.on('connection', (extWs: ExtWebSocket, req: any) => {
             const { url } = req;
-            console.log(`WebSocket server is running on wss://${process.env.GAMESERVERHOST}, url=${url}`);
+            console.log(`WebSocket server is running on wss://${process.env.hoq}, url=${url}`);
             extWs.socketId = generateRandString( "", 20, 1 );
             if ( extWs.readyState===WebSocket.OPEN ) {
                 const msgSender = async ( msgs: any[] ) => {
@@ -28,6 +28,12 @@ const socketServer = {
                     const intervalId = setInterval(async() => {
                         if (extWs.readyState === WebSocket.OPEN) {
                             const msgs = await msgHandler.getGameMultiplier();
+                            const staker = aviatorStatus.stakers.find( staker => staker.socketId===extWs.socketId );
+                            if( staker ) {
+                                console.log(`staker=`, staker);
+                                const balmsg = msgHandler.getPlayerBalance( staker );
+                                msgs.push( balmsg );
+                            }
                             msgSender( msgs );
                         }
                     }, aviatorStatus.duration);

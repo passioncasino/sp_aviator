@@ -1,3 +1,5 @@
+import { IStaker } from "./interface"
+
 interface IAviatorStatus {
     roundId: number
     state: number
@@ -8,6 +10,7 @@ interface IAviatorStatus {
     step: number,
     duration: number
     serverSeed: string
+    stakers: IStaker[]
 }
 
 export const aviatorStatus: IAviatorStatus = {
@@ -19,7 +22,8 @@ export const aviatorStatus: IAviatorStatus = {
     roundEndDate: 0,
     step: 0,
     duration: 1000,
-    serverSeed: "dzqbo4kwy6e8ytpfij82y8r5xvceobd1ghrlmmm2"
+    serverSeed: "dzqbo4kwy6e8ytpfij82y8r5xvceobd1ghrlmmm2",
+    stakers: []
 }
 
 export const CurrencyList = [

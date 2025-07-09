@@ -3,8 +3,7 @@ import avaiatorFuctions from '@/api/game/aviator/functions';
 import { generateRandString, generateServerSeed } from '@/api/utill/functions';
 import { aviatorStatus } from "../../utill/global"
 import { binaryToInfo, InfoToBinary } from '@/api/utill/spribe';
-import { IAct0Params, IAct1Params, IBet, Icoh, IUCCOParams, IUPlayer } from "@/api/utill/interface";
-import { basename } from "path";
+import { IAct0Params, IAct1Params, IBet, Icoh, IUCCOParams, IUPlayer, IStaker } from "@/api/utill/interface";
 
 export const msgHandler = {
     getResponseMsg: async( msg: any, socketId: string ) => {
@@ -83,6 +82,10 @@ export const msgHandler = {
 
                             user.gameStatus.stake = Math.round( user.gameStatus.f.betAmount*100 + user.gameStatus.s.betAmount*100 )/100;
                             user.balance = Math.round( user.balance*100 - user.gameStatus.stake*100 ) / 100;
+                            aviatorStatus.stakers.push({
+                                socketId,
+                                balance: user.balance
+                            })
                             const betSecParam = {
                                 username: user.property.username,
                                 operator: user.property.operator,
@@ -103,7 +106,6 @@ export const msgHandler = {
                                 roundBetId: Date.now()
                             };
                             const isPlayer = await storeUtils.insertPlayer( player );
-                            const isBalance = await storeUtils.updateBalance( socketId, user.balance );
                             msgParams = avaiatorFuctions.generateBetParams( betParams );
                             break;
                         case "betHistoryHandler":
@@ -126,9 +128,12 @@ export const msgHandler = {
                                 user.gameStatus.s.autoCashOut = 0;
                             }
                             user.balance = Math.round( user.balance*100 + reward*100 ) / 100;
+                            aviatorStatus.stakers.push({
+                                socketId,
+                                balance: user.balance
+                            })
                             user.gameStatus.lastRound = 0;
                             msgParams = avaiatorFuctions.generateCBParams( msgData.betId, user.property.username, user.property.operator );
-                            const isBalance1 = await storeUtils.updateBalance( socketId, user.balance );
                             const cancelPlayer = await storeUtils.deletePlayer( user.property.username, msgData.betId );
                             break;
                         case "cashOutHandler":
@@ -164,6 +169,11 @@ export const msgHandler = {
                                 }
                                 msgParams = avaiatorFuctions.generateCashOutParams( cashoutParams );
                             }
+                            user.balance = Math.round( user.balance*100+cashout*100 ) / 100;
+                            aviatorStatus.stakers.push({
+                                socketId,
+                                balance: user.balance
+                            })
                             break;
                     }
                     
@@ -171,6 +181,7 @@ export const msgHandler = {
                         controller==="cancelBetHandler" || 
                         controller==="cashOutHandler" 
                     ) {
+                        await storeUtils.updateBalance( socketId, user.balance );
                         await storeUtils.updateUserGameStatus( user.property.username, user.gameStatus );
                     }
                 } else {
@@ -241,21 +252,18 @@ export const msgHandler = {
         });
         return binaryData;
     },
-    getGameMultiplier: async () => {
+    getGameMultiplier: async() => {
         let binaryArr: any[] = [];
         let resParamArr: any[] = [];
         let paramObj: any = null;
         let cid=1;
         let uccoFlag = false; 
 
-        // console.log(`getGameMultiplier state=${aviatorStatus.state}, step=${aviatorStatus.step}, multiplier=${aviatorStatus.multiplier}, crashX=${ aviatorStatus.crashX }, serverSeed=${ aviatorStatus.serverSeed } `);
-
         if ( aviatorStatus.state===0 ) {
             const moment = Date.now();
             if( aviatorStatus.step===0 && moment-aviatorStatus.roundEndDate>200 ) {
                 aviatorStatus.step++;
                 paramObj = avaiatorFuctions.generateRCIParams( aviatorStatus.multiplier, aviatorStatus.roundId );
-                // console.log(`aviatorStatus =`, aviatorStatus);
                 const prevGame = {
                     roundId: aviatorStatus.roundId,
                     maxMultiplier: aviatorStatus.multiplier,
@@ -271,7 +279,6 @@ export const msgHandler = {
                 aviatorStatus.multiplier = 1;
                 aviatorStatus.serverSeed = generateRandString( "", 40, 1 );
                 const seed = generateServerSeed();
-                // aviatorStatus.serverSeed = "tbBo8zliYnt66ehGwLSOV7NfTLBEjUkMjazljevE";
                 paramObj = avaiatorFuctions.generateCSParams( aviatorStatus.roundId, 1 );
             } else if( aviatorStatus.step===2 ) { // show animation
                 if( moment-aviatorStatus.roundEndDate>11000 ) {
@@ -287,6 +294,7 @@ export const msgHandler = {
             if( aviatorStatus.multiplier===1 ) {
                 console.log(`getGameMultiplier crashX=${ aviatorStatus.crashX }, serverSeed=${ aviatorStatus.serverSeed } `);
                 aviatorStatus.roundStartDate = Date.now();
+                aviatorStatus.stakers.length = 0;
             }
             aviatorStatus.multiplier = Math.round( aviatorStatus.multiplier*100+1 ) / 100;
             if( aviatorStatus.multiplier*100%4===3 ) {
@@ -300,7 +308,6 @@ export const msgHandler = {
             paramObj = avaiatorFuctions.generateXParams( true, aviatorStatus.crashX );
             aviatorStatus.roundEndDate = Date.now();
             aviatorStatus.state = 0;
-            console.log(`ended ${ aviatorStatus.roundEndDate }`);
         }
         
         if( !uccoFlag && paramObj !== null ) {
@@ -317,6 +324,7 @@ export const msgHandler = {
             paramObj = avaiatorFuctions.generateUCCOParams( uccoParams );
             resParamArr = resParamArr.concat( paramObj );
         }
+
         if( resParamArr.length>0 ) {
             resParamArr.forEach(( obj:any ) => {
                 const msgData = InfoToBinary( 13, cid, obj );
@@ -324,5 +332,11 @@ export const msgHandler = {
             });
         }
         return binaryArr;
+    },
+    getPlayerBalance: ( staker: IStaker ) => {
+        const msgParams = avaiatorFuctions.generateNewBalanceParams( staker.balance );
+        const biData = InfoToBinary( 13, 1, msgParams[0] );
+        aviatorStatus.stakers = aviatorStatus.stakers.filter( uStaker => uStaker.socketId !== staker.socketId );
+        return biData;
     }
 }

@@ -513,12 +513,12 @@ const generateCSParams = ( roundId: number, state: number ) => {
   return paramArr;
 }
 
-const generateNewBalanceParams = () => {
+export const generateNewBalanceParams = ( balance: number ) => {
   let paramArr: any[] = [];
   const pObj = new SFS2X.SFSObject();
   const pDatas: TsfsItem[] = [
     { prop: "code", type: 4, value: 200 },
-    { prop: "newBalance", type: 7, value: 22.61 }
+    { prop: "newBalance", type: 7, value: balance }
   ];
   putDatas( pObj, pDatas );
 

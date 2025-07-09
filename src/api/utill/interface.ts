@@ -83,3 +83,8 @@ export interface IUPlayer {
     multiplier: number
     cashOutDate: number
 }
+
+export interface IStaker {
+    socketId: string
+    balance: number
+}
