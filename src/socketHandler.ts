@@ -12,7 +12,7 @@ const socketServer = {
         const wss = new WebSocketServer({ server });
         wss.on('connection', (extWs: ExtWebSocket, req: any) => {
             const { url } = req;
-            console.log(`WebSocket server is running on wss://${process.env.hoq}, url=${url}`);
+            console.log(`WebSocket server is running on wss://${process.env.GAMESERVERHOST}, url=${url}`);
             extWs.socketId = generateRandString( "", 20, 1 );
             if ( extWs.readyState===WebSocket.OPEN ) {
                 const msgSender = async ( msgs: any[] ) => {
