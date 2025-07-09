@@ -29,7 +29,6 @@ package-lock.json
 
 # Ignore the gs2c directory
 src/public
-views/
 .env.prod
 .env.development
 .env.prod.temp
