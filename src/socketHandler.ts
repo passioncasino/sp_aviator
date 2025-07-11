@@ -12,7 +12,7 @@ const socketServer = {
         const wss = new WebSocketServer({ server });
         wss.on('connection', (extWs: ExtWebSocket, req: any) => {
             const { url } = req;
-            console.log(`WebSocket server is running on wss://${process.env.GAMESERVERHOST}, url=${url}`);
+            console.log(`WebSocket server is running on wss://${process.env.GAMESERVERHOST}, url=${url}, connected players=${ wss.clients.size }`);
             extWs.socketId = generateRandString( "", 20, 1 );
             if ( extWs.readyState===WebSocket.OPEN ) {
                 const msgSender = async ( msgs: any[] ) => {
@@ -20,6 +20,7 @@ const socketServer = {
                 };
 
                 if( url==="/BlueBox/websocket" ) {
+                    aviatorStatus.onlinePlayers = wss.clients.size;
                     extWs.on(`message`, async(msg) => {
                         const msgs = await msgHandler.getResponseMsg( msg, extWs.socketId );
                         msgSender( msgs );
@@ -39,6 +40,7 @@ const socketServer = {
                     }, aviatorStatus.duration);
                     
                     extWs.on('close', () => {
+                        aviatorStatus.onlinePlayers = wss.clients.size;
                         clearInterval(intervalId);
                     });
                 }

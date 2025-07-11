@@ -38,11 +38,15 @@ export const msgHandler = {
                 if( userInfo!==500 && userInfo!==3001 ) {
                     if( userInfo.property.username==msgData.un.split("&&")[ 0 ]) {
                         const updateProperty = await storeUtils.updateUserProperty( userInfo.property.username, socketId, msgData.sessionToken );
-                        if( updateProperty!==501 ) {
+                        // const currentPlayerSeeds = await storeUtils.
+                        const pastGames = await storeUtils.getPastGamesInfo( 1 );
+
+                        if( updateProperty!==501 && pastGames !== 501 ) {
                             const act1Param: IAct1Params = {
                                 userId: msgData.un,
                                 balance: userInfo.balance,
                                 property: userInfo.property,
+                                pastGames
                             }
                             cids.push( 1 );
                             actions.push( 13 );
@@ -103,7 +107,8 @@ export const msgHandler = {
                                 currency: user.property.currency,
                                 profileImage: user.property.profileImage,
                                 cashOutDate: aviatorStatus.roundStartDate,
-                                roundBetId: Date.now()
+                                roundBetId: Date.now(),
+                                clientSeed: msgData.clientSeed
                             };
                             const isPlayer = await storeUtils.insertPlayer( player );
                             msgParams = avaiatorFuctions.generateBetParams( betParams );
@@ -209,7 +214,7 @@ export const msgHandler = {
                             else console.log(`topRounds =`, topRounds );
                             break;
                         case "getTopWinsInfoHandler":
-                            const topWins = await storeUtils.getTopWins();
+                            const topWins = await storeUtils.getPastGamesInfo( 0 );
                             if( topWins!==501 ) msgParams = avaiatorFuctions.generateGTWIParams( topWins );
                             break;
                         case "previousRoundInfoHandler":
@@ -219,7 +224,7 @@ export const msgHandler = {
                                 if( prevGameInfo!==1 ) {
                                     msgParams = avaiatorFuctions.generatePRIRParams( prevGameInfo.prevGame, prevGameInfo.prevBets );
                                 } else {
-    
+                                    // msgParams = avaiatorFuctions.generatePRIRParams( [], [] );
                                 }
                             } else {
     
@@ -270,12 +275,13 @@ export const msgHandler = {
                     roundStartDate: aviatorStatus.roundStartDate,
                     roundEndDate: aviatorStatus.roundEndDate,
                     serverSeed: aviatorStatus.serverSeed,
+                    totalCashOut: 0
                 }
                 await storeUtils.insertPreviousGame( prevGame );
             } else if( aviatorStatus.step===1 && moment-aviatorStatus.roundEndDate>5700 ) { // gameStart
                 await storeUtils.updatePlayersAfterCrash( aviatorStatus.roundId, aviatorStatus.multiplier );
                 aviatorStatus.step++;
-                aviatorStatus.roundId++;
+                // aviatorStatus.roundId++;
                 aviatorStatus.multiplier = 1;
                 aviatorStatus.serverSeed = generateRandString( "", 40, 1 );
                 const seed = generateServerSeed();
@@ -286,10 +292,15 @@ export const msgHandler = {
                     paramObj = avaiatorFuctions.generateCSParams( aviatorStatus.roundId, 2 );
                     aviatorStatus.step = 0;
                     aviatorStatus.state = 1;
-                    aviatorStatus.crashX = avaiatorFuctions.gameResult( rtp, aviatorStatus.serverSeed, ["xVRRVA3lM9cUnaH2zQnX", "ETDIy60W3vRNP1BgP8Rq"] );
+                    const playerSeeds = await storeUtils.getPlayerList( 1 );
+                    console.log(`playerSeeds `, playerSeeds);
+                    if( playerSeeds!==501 && avaiatorFuctions.isStringArray(playerSeeds) ) {
+                        aviatorStatus.crashX = avaiatorFuctions.gameResult( rtp, aviatorStatus.serverSeed, playerSeeds );
+                    } else {
+                        aviatorStatus.crashX = 1.0;
+                    }
                 }
             }
-
         } else if ( aviatorStatus.state===1 ) {
             if( aviatorStatus.multiplier===1 ) {
                 console.log(`getGameMultiplier crashX=${ aviatorStatus.crashX }, serverSeed=${ aviatorStatus.serverSeed } `);

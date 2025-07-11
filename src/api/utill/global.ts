@@ -11,6 +11,7 @@ interface IAviatorStatus {
     duration: number
     serverSeed: string
     stakers: IStaker[]
+    onlinePlayers: number
 }
 
 export const aviatorStatus: IAviatorStatus = {
@@ -23,7 +24,8 @@ export const aviatorStatus: IAviatorStatus = {
     step: 0,
     duration: 1000,
     serverSeed: "dzqbo4kwy6e8ytpfij82y8r5xvceobd1ghrlmmm2",
-    stakers: []
+    stakers: [],
+    onlinePlayers: 20
 }
 
 export const CurrencyList = [

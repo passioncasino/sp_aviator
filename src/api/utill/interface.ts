@@ -39,6 +39,7 @@ export interface IAct1Params {
     userId: string
     balance: number
     property: any
+    pastGames: any[]
 }
 
 export interface Icoh {

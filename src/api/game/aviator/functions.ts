@@ -1,5 +1,5 @@
 import { TsfsItem, TsfsArrItem, IAct0Params, IAct1Params, IBet, Icoh, IUCCOParams } from "@/api/utill/interface";
-import { CurrencyList } from "@/api/utill/global";
+import { aviatorStatus, CurrencyList } from "@/api/utill/global";
 import crypto from 'crypto';
 
 const SFS2X = require("sfs2x-api");
@@ -165,7 +165,7 @@ const generateAct1Params = ( param: IAct1Params ) => {
         { prop: "un", type: 8, value: param.userId },
         { prop: "pi", type: 3, value: 0 },
         { prop: "rl", type: 17, value: pRlArr },
-        { prop: "id", type: 4, value: 3212110 }
+        { prop: "id", type: 4, value: aviatorStatus.roundId }
       ];
       putDatas( paramObj, data0 );
       paramArr.push( paramObj );
@@ -173,41 +173,44 @@ const generateAct1Params = ( param: IAct1Params ) => {
       const muls = [ 1, 1.77, 1.49, 6.79, 1.15, 1.77, 1.49, 6.79, 1.15, 1.77, 1.84, 4.26, 1.27, 1.85, 1.6, 8.85, 1.31, 7.72, 5.48, 1.29, 1.53, 1.7, 1.07, 2.94, 1.48, 3.5, 2.03, 1.14, 4.46 ];
       const rid = 2537417;
       const pObj2 = new SFS2X.SFSObject();
-      const roundsInfo = new SFS2X.SFSArray();
-      const userSettings = new SFS2X.SFSObject();
-      const user = new SFS2X.SFSObject();
-      const config = new SFS2X.SFSObject();
-      const configBetOptions = new SFS2X.SFSArray();
-      const configAutoCashOut = new SFS2X.SFSObject();
-      const configEngagementTools = new SFS2X.SFSObject();
-      const configChat = new SFS2X.SFSObject();
-      const configChatPromo = new SFS2X.SFSObject();
-      const configChatRain = new SFS2X.SFSObject();
+      const roundsInfoArr = new SFS2X.SFSArray();
+      const userSettingsObj = new SFS2X.SFSObject();
+      const userObj = new SFS2X.SFSObject();
+      const configObj = new SFS2X.SFSObject();
+      const configBetOptionsArr = new SFS2X.SFSArray();
+      const configAutoCashOutObj = new SFS2X.SFSObject();
+      const configEngagementToolsObj = new SFS2X.SFSObject();
+      const configChatObj = new SFS2X.SFSObject();
+      const configChatPromoObj = new SFS2X.SFSObject();
+      const configChatRainObj = new SFS2X.SFSObject();
 
-      // for (let i = 0; i < muls.length; i++) {
-      //   const roundObj = new SFS2X.SFSObject();
-      //   roundObj.putDouble( "maxMultiplier", muls[ i ] );
-      //   roundObj.putInt( "roundId", rid-i );
-      //   roundsInfo.addSFSObject( roundObj );
-      // }
       console.log(`--> param.property`, param.property);
+      param.pastGames.forEach((element) => {
+        const roundObj = new SFS2X.SFSObject();
+        const roundData: TsfsItem[] = [
+          { prop: "maxMultiplier", type: 7, value: element.maxMultiplier },
+          { prop: "roundId", type: 4, value: element.roundId }
+        ];
+        putDatas( roundObj, roundData );
+        roundsInfoArr.addSFSObject( roundObj );
+      });
+
       const userSettingData: TsfsItem[] = [
         { prop: "music", type: 1, value: true },
         { prop: "sound", type: 1, value: true },
         { prop: "secondBet", type: 1, value: true },
         { prop: "animation", type: 1, value: true }
       ];
-
-      putDatas( userSettings, userSettingData );
+      putDatas( userSettingsObj, userSettingData );
 
       const userData: TsfsItem[] = [
-        { prop: "settings", type: 18, value: userSettings },
+        { prop: "settings", type: 18, value: userSettingsObj },
         { prop: "balance", type: 7, value: param.balance },
         { prop: "profileImage", type: 8, value: param.property.profileImage },
         { prop: "userId", type: 8, value: param.userId },
         { prop: "username", type: 8, value: param.property.username },
       ];
-      putDatas( user, userData );
+      putDatas( userObj, userData );
 
       const configBetOptionsData: TsfsArrItem[] = [
         { type: 4, value: 10 },
@@ -215,24 +218,24 @@ const generateAct1Params = ( param: IAct1Params ) => {
         { type: 4, value: 50 },
         { type: 4, value: 100 }
       ];
-      addDataToArray( configBetOptions, configBetOptionsData );
+      addDataToArray( configBetOptionsArr, configBetOptionsData );
 
       const configAutoCashOutData: TsfsItem[] = [
         { prop: "minValue", type: 7, value: 1.01 },
         { prop: "defaultValue", type: 7, value: 1.1 },
         { prop: "maxValue", type: 7, value: 1.00 },
       ];
-      putDatas( configAutoCashOut, configAutoCashOutData );
+      putDatas( configAutoCashOutObj, configAutoCashOutData );
 
       const configEngagementToolsData: TsfsItem[] = [
         { prop: "isExternalChatEnabled", type: 1, value: false }
       ];
-      putDatas( configEngagementTools, configEngagementToolsData );
+      putDatas( configEngagementToolsObj, configEngagementToolsData );
 
       const configChatPromoData: TsfsItem[] = [
         { prop: "isExternalChatEnabled", type: 1, value: false }
       ];
-      putDatas( configChatPromo, configChatPromoData );
+      putDatas( configChatPromoObj, configChatPromoData );
 
       const configChatRainData: TsfsItem[] = [
         { prop: "isEnabled", type: 1, value: false },
@@ -242,18 +245,18 @@ const generateAct1Params = ( param: IAct1Params ) => {
         { prop: "maxNumOfUsers", type: 4, value: 10 },
         { prop: "rainMaxBet", type: 7, value: 50 },
       ];
-      putDatas( configChatRain, configChatRainData );
+      putDatas( configChatRainObj, configChatRainData );
 
       const configChatData: TsfsItem[] = [
-        { prop: "promo", type: 18, value: configChatPromo },
-        { prop: "rain", type: 18, value: configChatRain },
+        { prop: "promo", type: 18, value: configChatPromoObj },
+        { prop: "rain", type: 18, value: configChatRainObj },
         { prop: "isGifsEnabled", type: 1, value: true },
         { prop: "sendMessageDelay", type: 7, value: 5000 },
         { prop: "isEnabled", type: 1, value: false },
         { prop: "maxMessages", type: 4, value: 70 },
         { prop: "maxMessageLength", type: 4, value: 160 },
       ];
-      putDatas( configChat, configChatData );
+      putDatas( configChatObj, configChatData );
 
       const configData: TsfsItem[] = [
         { prop: "isAutoBetFeatureEnabled", type: 1, value: true },
@@ -278,7 +281,7 @@ const generateAct1Params = ( param: IAct1Params ) => {
         { prop: "isGameRulesHaveMinimumBankValue", type: 1, value: false },
         { prop: "isShowTotalWinWidget", type: 1, value: true },
         { prop: "isShowBetControlNumber", type: 1, value: false },
-        { prop: "betOptions", type: 17, value: configBetOptions },
+        { prop: "betOptions", type: 17, value: configBetOptionsArr },
         { prop: "modalShownOnInit", type: 8, value: "none" },
         { prop: "isLiveBetsAndStatisticsHidden", type: 1, value: false },
         { prop: "onLockUIActions", type: 8, value: "cancelBet" },
@@ -289,9 +292,9 @@ const generateAct1Params = ( param: IAct1Params ) => {
         { prop: "isUseMaskedUsername", type: 1, value: true },
         { prop: "isShowWinAmountUntilNextRound", type: 1, value: false },
         { prop: "multiplierPrecision", type: 4, value: 2 },
-        { prop: "autoCashOut", type: 18, value: configAutoCashOut },
+        { prop: "autoCashOut", type: 18, value: configAutoCashOutObj },
         { prop: "isMultipleBetsEnabled", type: 1, value: true },
-        { prop: "engagementTools", type: 1, value: true },
+        { prop: "engagementTools", type: 18, value: configEngagementToolsObj },
         { prop: "isFreeBetsEnabled", type: 1, value: true },
         { prop: "pingIntervalMs", type: 4, value: 15000 },
         { prop: "isLogoUrlHidden", type: 1, value: false },
@@ -303,23 +306,23 @@ const generateAct1Params = ( param: IAct1Params ) => {
         { prop: "isHolidayTheme", type: 1, value: false },
         { prop: "isGameRulesHaveMultiplierFormula", type: 1, value: false },
         { prop: "accountHistoryActionType", type: 8, value: 'navigate' },
-        { prop: "chat", type: 18, value: configChat },
+        { prop: "chat", type: 18, value: configChatObj },
         { prop: "ircDisplayType", type: 8, value: 'modal' },
         { prop: "gameRulesAutoCashOutType", type: 8, value: 'default' }
       ];
-      putDatas( config, configData );
+      putDatas( configObj, configData );
 
       const pData: TsfsItem[] = [
-        { prop: "roundsInfo", type: 17, value: roundsInfo },
+        { prop: "roundsInfo", type: 17, value: roundsInfoArr },
         { prop: "code", type: 4, value: 200 },
         { prop: "activeBets", type: 17, value: empArr },
-        { prop: "onlinePlayers", type: 4, value: 290 },
+        { prop: "onlinePlayers", type: 4, value: aviatorStatus.onlinePlayers },
         { prop: "activeFreeBetsInfo", type: 17, value: empArr },
-        { prop: "user", type: 18, value: user },
-        { prop: "config", type: 18, value: config },
-        { prop: "roundId", type: 4, value: 2537418 },
+        { prop: "user", type: 18, value: userObj },
+        { prop: "config", type: 18, value: configObj },
+        { prop: "roundId", type: 4, value: aviatorStatus.roundId },
         { prop: "stageId", type: 4, value: 2 },
-        { prop: "currentMultiplier", type: 7, value: 1.59 },
+        { prop: "currentMultiplier", type: 7, value: aviatorStatus.multiplier },
       ];
       putDatas( pObj2, pData );
       
@@ -902,11 +905,14 @@ const gameResult = ( rtp: number, seed1: string, seed2Arr: string[] ) => {
   console.log(`  crashX =`, crashX);
   console.log(`  result =`, result);
   console.log(`>-----------------------------------<`);
-  return 1.09;
+  // return 1.09;
   return Math.max( 1, Math.round( result*100 )/100 );
 }
-// 5badc3c1e56565df7860c71d7762baa0ab3ef8937b00ea3b61345f35a953572db07f3815a89f9de43cabefab66d3feebf39ab5613d7585de29ff66f490863831
-// f6949bd6da9eec21704c6b6715d64ae2ecb0b6a379a733c0184ad28f00d314c463780cf4256cfa8c4f7ef595b9b4a4e9266f38c5e7a0dc82ceff0a25ce796029
+
+const isStringArray = (arr: any): arr is string[] => {
+  return Array.isArray(arr) && arr.every(item => typeof item === 'string');
+}
+
 export default {
   analyzeMsg,
   generateAct0Params,
@@ -934,5 +940,7 @@ export default {
   generateSPSRParams,
   generateXParams,
 
-  gameResult
+  gameResult,
+  
+  isStringArray
 }

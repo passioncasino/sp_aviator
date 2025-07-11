@@ -1,6 +1,7 @@
 import { MongoClient } from 'mongodb';
 import { env } from '@/common/utils/envConfig';
 import { IUserInfo, IUPlayer } from '../utill/interface';
+import initData from "./seed";
 
 const mongoURL = env.CONNECTION_STRING as string;
 const client = new MongoClient( mongoURL );
@@ -14,12 +15,11 @@ const DHistories = db.collection<SchemeHistory>('histories');
 export const connect = async () => {
     try {
         await client.connect();
-        // await DUsers.createIndex({ name: 1 }, { unique: true, name: 'users-name' });
-        // await DGames.createIndex({ name: 1 }, { unique: true, name: 'users-name' });
-        // await DPlayers.createIndex({ userId: 1 }, { unique: false, name: 'logs-userid' });
-        // await DHistories.createIndex({ userId: 1 }, { unique: false, name: 'logs-userid' });
-        
-        console.log(`Connected to ${ env.DBNAME }` );
+        const numOfGames = await DGames.countDocuments();
+        const numOfHistories = await DHistories.countDocuments();
+        console.log(`Connected to ${ env.DBNAME }, numOfGames=${numOfGames}, numOfHistories=${numOfHistories}`);
+        if( numOfGames===0 ) await DGames.insertMany( initData.games );
+        if( numOfHistories===0 ) await DHistories.insertMany( initData.histories );      
         return true;
     } catch ( error ) {
         console.log(`db connect error, `, error);
@@ -174,8 +174,12 @@ export const getPlayerList = async( type: number ) => {
             const players = await DPlayers.find().sort({ created: -1 }).toArray();
             return players;
         } else {
+            const seeds: string[] = [];
             const players = await DPlayers.find().sort({ created: -1 }).limit(3).toArray();
-            return players;
+            players.forEach((player) => {
+                seeds.push( player.clientSeed );
+            })
+            return seeds;
         }
     } catch (error) {
         console.log(`getPlayerList error is `, error);
@@ -261,7 +265,7 @@ export const updatePlayersAfterCrash = async( roundId: number, maxMultiplier: nu
                 }
             }
         )
-        // const isDelete = await DPlayers.deleteMany({});
+        const isDelete = await DPlayers.deleteMany({});
 
         return isUpdate;
     } catch (error) {
@@ -295,21 +299,20 @@ export const getTopRounds = async() => {
     }
 }
 
-export const getTopWins = async() => {
+export const getPastGamesInfo = async( type: number ) => { // 0: topWin, 1: created
     try {
-        const arrange: { [key: string]: 1 | -1 } = { winAmount: -1 };
-        const topWins = await DHistories.find({}).sort( arrange ).limit( 20 ).toArray();
-        // console.log(` ==> topWins =`, topWins);
-        return topWins;
+        const arrange: { [key: string]: 1 | -1 } = type===0 ? { winAmount: -1 } : { roundStartDate: -1 } ;
+        const pastGames = await DHistories.find({}).sort( arrange ).limit( 20 ).toArray();
+        // console.log(` ==> pastGames =`, pastGames);
+        return pastGames;
     } catch (error) {
-        console.log(`getTopWins error is `, error);
+        console.log(`getPastGamesInfo error is `, error);
         return 501;
     }
 }
 
 export const getPrevGameInfo = async( prevId: number, flag: number ) => {
     try {
-        prevId = 2537490;
         const prevGame = await DGames.findOne({ roundId: prevId });
         let prevBets: SchemeHistory[] = [];
         if( prevGame===null ) return 1;

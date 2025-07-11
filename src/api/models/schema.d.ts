@@ -40,6 +40,7 @@ declare interface SchemeGame {
     roundStartDate: number
     roundEndDate: number
     serverSeed: string
+    totalCashOut: number
     // zone: string
 }
 
@@ -56,6 +57,7 @@ declare interface SchemePlayer {
     profileImage: string
     cashOutDate: number
     roundBetId: number
+    clientSeed: string
 }
 
 declare interface SchemeHistory extends SchemePlayer {
