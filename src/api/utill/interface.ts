@@ -89,3 +89,9 @@ export interface IStaker {
     socketId: string
     balance: number
 }
+
+export interface IPlayerRound {
+    seed: string
+    profileImage: string
+    username: string
+}

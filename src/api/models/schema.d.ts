@@ -26,12 +26,6 @@ declare interface SchemeUser {
             autoCashOut: number
         }
     }
-    // settings: {
-    //     music: boolean
-    //     sound: boolean
-    //     secondBet: boolean
-    //     animation: boolean
-    // }
 }
 
 declare interface SchemeGame {
@@ -41,7 +35,7 @@ declare interface SchemeGame {
     roundEndDate: number
     serverSeed: string
     totalCashOut: number
-    // zone: string
+    playerSeeds: string[]
 }
 
 declare interface SchemePlayer {

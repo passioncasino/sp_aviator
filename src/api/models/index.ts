@@ -1,6 +1,6 @@
 import { MongoClient } from 'mongodb';
 import { env } from '@/common/utils/envConfig';
-import { IUserInfo, IUPlayer } from '../utill/interface';
+import { IUserInfo, IUPlayer, IPlayerRound } from '../utill/interface';
 import initData from "./seed";
 
 const mongoURL = env.CONNECTION_STRING as string;
@@ -173,7 +173,7 @@ export const getPlayerList = async( type: number ) => {
         if( type===0 ) {
             const players = await DPlayers.find().sort({ created: -1 }).toArray();
             return players;
-        } else {
+        } else if( type===1 ) {
             const seeds: string[] = [];
             const players = await DPlayers.find().sort({ created: -1 }).limit(3).toArray();
             players.forEach((player) => {
@@ -237,7 +237,7 @@ export const getUserBetHistory = async( username: string ) => {
         const history = await DHistories.find({ username: username }).sort({ roundBetId: -1 }).toArray();
         return history;
     } catch (error) {
-        console.log(`deletePlayer error is `, error);
+        console.log(`getUserBetHistory error is `, error);
         return 501;
     }
 }
@@ -294,7 +294,7 @@ export const getTopRounds = async() => {
         const topRounds = await DGames.find({}).sort(arrange).limit( 20 ).toArray();
         return topRounds;
     } catch (error) {
-        console.log(`deletePlayer error is `, error);
+        console.log(`getTopRounds error is `, error);
         return 501;
     }
 }
@@ -320,6 +320,29 @@ export const getPrevGameInfo = async( prevId: number, flag: number ) => {
         return { prevGame, prevBets };
     } catch (error) {
         console.log(`getPrevGameInfo error is `, error);
+        return 501;
+    }
+}
+
+export const getPlayersInfoByRound = async( roundid: number, seeds: string[] ) => {
+    try {
+        const roundDatas: IPlayerRound[] = [];
+        for (let i = 0; i < seeds.length; i++) {
+            const playerInRound = await DHistories.findOne({ roundId: roundid, clientSeed: seeds[i] });
+            if( playerInRound !==null ) {
+                const roundItem: IPlayerRound = {
+                    seed: playerInRound.clientSeed,
+                    profileImage: playerInRound.profileImage,
+                    username: playerInRound.username,
+                }
+                roundDatas.push( roundItem );
+            }            
+        }
+
+        console.log(` :: db roundDatas=`, roundDatas);
+        return roundDatas;
+    } catch (error) {
+        console.log(`getPlayersInfo error is `, error);
         return 501;
     }
 }

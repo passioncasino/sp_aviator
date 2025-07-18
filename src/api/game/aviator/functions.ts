@@ -1,4 +1,4 @@
-import { TsfsItem, TsfsArrItem, IAct0Params, IAct1Params, IBet, Icoh, IUCCOParams } from "@/api/utill/interface";
+import { TsfsItem, TsfsArrItem, IAct0Params, IAct1Params, IBet, Icoh, IUCCOParams, IPlayerRound } from "@/api/utill/interface";
 import { aviatorStatus, CurrencyList } from "@/api/utill/global";
 import crypto from 'crypto';
 
@@ -170,8 +170,6 @@ const generateAct1Params = ( param: IAct1Params ) => {
       putDatas( paramObj, data0 );
       paramArr.push( paramObj );
     } else {
-      const muls = [ 1, 1.77, 1.49, 6.79, 1.15, 1.77, 1.49, 6.79, 1.15, 1.77, 1.84, 4.26, 1.27, 1.85, 1.6, 8.85, 1.31, 7.72, 5.48, 1.29, 1.53, 1.7, 1.07, 2.94, 1.48, 3.5, 2.03, 1.14, 4.46 ];
-      const rid = 2537417;
       const pObj2 = new SFS2X.SFSObject();
       const roundsInfoArr = new SFS2X.SFSArray();
       const userSettingsObj = new SFS2X.SFSObject();
@@ -201,6 +199,7 @@ const generateAct1Params = ( param: IAct1Params ) => {
         { prop: "secondBet", type: 1, value: true },
         { prop: "animation", type: 1, value: true }
       ];
+
       putDatas( userSettingsObj, userSettingData );
 
       const userData: TsfsItem[] = [
@@ -437,10 +436,9 @@ const generateCBIHParams = ( players: any[] ) => {
   const pObj = new SFS2X.SFSObject();
   const pCashoutArr = new SFS2X.SFSArray();
   const pBetArr = new SFS2X.SFSArray();
-  const profiles = [ 'av-26.png', 'av-63.png', 'av-50.png' ];
-  const pTopPlayerProfileImages = generateProfileArr( profiles );
+  const profiles: string[] = [];
 
-  players.forEach((player) => {
+  players.forEach((player, ind) => {
     const pBetItemObj = new SFS2X.SFSObject();
     const operator = player.username.split("&&")[0];
     const betItem: TsfsItem[] = [
@@ -452,6 +450,7 @@ const generateCBIHParams = ( players: any[] ) => {
       { prop: 'profileImage', type: 8, value: player.profileImage },
       { prop: 'username', type: 8, value: player.username }
     ];
+    if( ind<3 ) profiles.push( player.profileImage );
     putDatas( pBetItemObj, betItem );
     pBetArr.addSFSObject( pBetItemObj );
     if( player.winAmount>0 ) {
@@ -467,6 +466,7 @@ const generateCBIHParams = ( players: any[] ) => {
       pCashoutArr.addSFSObject( pCashOutItemObj );
     }
   })
+  const pTopPlayerProfileImages = generateProfileArr( profiles );
 
   const pDatas: TsfsItem[] = [
     { prop: "betsCount", type: 4, value: 4177 },
@@ -554,32 +554,27 @@ const generateRCIParams = ( mul: number, roundId: number ) => {
 }
 
 // c = roundFairnessHandler
-const generateRFHParams = ( game: SchemeGame ) => {
+const generateRFHParams = ( game: SchemeGame, playersInRound: IPlayerRound[] ) => {
   let paramArr: any[] = [];
   const pObj = new SFS2X.SFSObject();
   const pFairnessObj = new SFS2X.SFSObject();
   const pPlayerSeeds = new SFS2X.SFSArray();
 
-  const seedsData: TsfsItem[][] = [
-    [
-      { prop: 'seed', type: 8, value: "vyqFv6B1kM2FHcwfwBFW" },
-      { prop: 'profileImage', type: 8, value: "av-10.png" },
-      { prop: 'username', type: 8, value: "ALAN SANTOS - Remover após validação" }
-    ], [
-      { prop: 'seed', type: 8, value: "HOQwfEOnTCMcTmzMsR1b" },
-      { prop: 'profileImage', type: 8, value: "av-20.png" },
-      { prop: 'username', type: 8, value: "Kessbet100000008" }
-    ]
-  ];
-  seedsData.forEach(( item ) => {
+  playersInRound.forEach(( item ) => {
     const subSeesObj = new SFS2X.SFSObject();
-    putDatas( subSeesObj, item );
+    const seedItem: TsfsItem[] = [
+      { prop: 'seed', type: 8, value: item.seed },
+      { prop: 'profileImage', type: 8, value: item.profileImage },
+      { prop: 'username', type: 8, value: item.username }
+    ];
+    putDatas( subSeesObj, seedItem );
     pPlayerSeeds.addSFSObject( subSeesObj );
-  });
+  })
+  
+  let seedSum = game.serverSeed;
+  game.playerSeeds.forEach((seed) => { seedSum += seed });
 
-  // const plain = crypto.HmacSHA512( game.serverSeed, env.SEED_KEY );
-  const seedSHA512 = crypto.createHash('sha512').update( game.serverSeed + "vyqFv6B1kM2FHcwfwBFW" + "HOQwfEOnTCMcTmzMsR1b" ).digest('hex');
-  // const seedSHA512 = plain.toString(crypto.enc.Hex);
+  const seedSHA512 = crypto.createHash('sha512').update( seedSum ).digest('hex');
   const seedHex = seedSHA512.slice( 0, 13 );
   const seedDeci = parseInt( seedHex, 16 );
   console.log(`seedSHA512 =`, seedSHA512);
@@ -799,7 +794,6 @@ const generatePRIRParams = ( prevGame: SchemeGame, prevBets: SchemeHistory[] ) =
   const pObj = new SFS2X.SFSObject();
   const pBetsArr = new SFS2X.SFSArray();
   const pRoundInfoObj = new SFS2X.SFSObject();
-  console.log(`prevGame `, prevGame);
   const pRoundInfoDatas: TsfsItem[] = [
     { prop: "multiplier", type: 7, value: prevGame.maxMultiplier },
     { prop: "roundStartDate", type: 5, value: prevGame.roundStartDate },
@@ -900,12 +894,10 @@ const gameResult = ( rtp: number, seed1: string, seed2Arr: string[] ) => {
   const crashX = parseFloat((seedDeci / max).toPrecision(9));
   let result = rtp / (1-crashX) / 100;
   console.log(`>-----------------------------------<`);
-  // console.log(`  seedCombine =`, seedCombine);
-  // console.log(`  seedSHA512 =`, seedSHA512);
   console.log(`  crashX =`, crashX);
   console.log(`  result =`, result);
   console.log(`>-----------------------------------<`);
-  // return 1.09;
+  return 1.09;
   return Math.max( 1, Math.round( result*100 )/100 );
 }
 

@@ -198,8 +198,8 @@ export const msgHandler = {
                             break;
                         case "currentBetsInfoHandler":
                             const players = await storeUtils.getPlayerList( 0 );
-                            if( players !== 501 ) {
-                                msgParams = avaiatorFuctions.generateCBIHParams( players );
+                            if( players !== 501 && players !== undefined ) {
+                                if( !avaiatorFuctions.isStringArray( players ) ) msgParams = avaiatorFuctions.generateCBIHParams( players );
                             } else {
                                 console.log(`players=${players}`);
                             }
@@ -235,9 +235,10 @@ export const msgHandler = {
                             break;
                         case "roundFairnessHandler":
                             const roundGame = await storeUtils.getPrevGameInfo( msgData.roundId, 1 );
-                            if( roundGame !== 501 ) {
-                                if( roundGame !== 1 ) {
-                                    msgParams = avaiatorFuctions.generateRFHParams( roundGame.prevGame );
+                            if( roundGame !== 501 && roundGame !== 1 ) {
+                                const playersInRound = await storeUtils.getPlayersInfoByRound( msgData.roundId, roundGame.prevGame.playerSeeds );
+                                if( playersInRound !== 501 ) {
+                                    msgParams = avaiatorFuctions.generateRFHParams( roundGame.prevGame, playersInRound );
                                 }
                             }
                             break;
@@ -269,23 +270,29 @@ export const msgHandler = {
             if( aviatorStatus.step===0 && moment-aviatorStatus.roundEndDate>200 ) {
                 aviatorStatus.step++;
                 paramObj = avaiatorFuctions.generateRCIParams( aviatorStatus.multiplier, aviatorStatus.roundId );
-                const prevGame = {
-                    roundId: aviatorStatus.roundId,
-                    maxMultiplier: aviatorStatus.multiplier,
-                    roundStartDate: aviatorStatus.roundStartDate,
-                    roundEndDate: aviatorStatus.roundEndDate,
-                    serverSeed: aviatorStatus.serverSeed,
-                    totalCashOut: 0
-                }
-                await storeUtils.insertPreviousGame( prevGame );
             } else if( aviatorStatus.step===1 && moment-aviatorStatus.roundEndDate>5700 ) { // gameStart
-                await storeUtils.updatePlayersAfterCrash( aviatorStatus.roundId, aviatorStatus.multiplier );
-                aviatorStatus.step++;
-                // aviatorStatus.roundId++;
-                aviatorStatus.multiplier = 1;
-                aviatorStatus.serverSeed = generateRandString( "", 40, 1 );
-                const seed = generateServerSeed();
-                paramObj = avaiatorFuctions.generateCSParams( aviatorStatus.roundId, 1 );
+                const players = await storeUtils.getPlayerList( 1 );
+                if( players!==501 && players !== undefined ) {
+                    if( avaiatorFuctions.isStringArray( players ) ) {
+                        const prevGame = {
+                            roundId: aviatorStatus.roundId,
+                            maxMultiplier: aviatorStatus.multiplier,
+                            roundStartDate: aviatorStatus.roundStartDate,
+                            roundEndDate: aviatorStatus.roundEndDate,
+                            serverSeed: aviatorStatus.serverSeed,
+                            totalCashOut: 0,
+                            playerSeeds: players
+                        }
+                        await storeUtils.insertPreviousGame( prevGame );
+                    }
+                    await storeUtils.updatePlayersAfterCrash( aviatorStatus.roundId, aviatorStatus.multiplier );
+                    aviatorStatus.step++;
+                    aviatorStatus.roundId++;
+                    aviatorStatus.multiplier = 1;
+                    aviatorStatus.serverSeed = generateRandString( "", 40, 1 );
+                    const seed = generateServerSeed();
+                    paramObj = avaiatorFuctions.generateCSParams( aviatorStatus.roundId, 1 );
+                }
             } else if( aviatorStatus.step===2 ) { // show animation
                 if( moment-aviatorStatus.roundEndDate>11000 ) {
                     let rtp = 97;

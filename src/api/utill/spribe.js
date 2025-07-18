@@ -1,6 +1,5 @@
 const SFS2X = require("sfs2x-api");
 const pako = require('pako');
-// const zlib = require('zlib');
 
 const _CONTROLLER_ID = "c", _ACTION_ID = "a", _PARAM_ID = "p";
 
@@ -173,8 +172,6 @@ const Zlib = {
     Deflate(input) {
         return {
             compress() {
-                // const buffer = Buffer.from(input);
-                // const compressed = zlib.deflateSync(input);
                 const compressed = pako.deflate(input);
                 return new Uint8Array(compressed);
             }
@@ -184,8 +181,6 @@ const Zlib = {
     Inflate(input) {
         return {
             decompress() {
-                // const buffer = Buffer.from(input);
-                // const decompressed = zlib.inflateSync(input);
                 const decompressed = pako.inflate(input);
                 return new Uint8Array(decompressed);
             }
@@ -250,6 +245,5 @@ export const InfoToBinary = ( aid, cid, paramObj ) => {
     const finalMessage = new Uint8Array(writer.buffer)
     const hexArray = uint8ArrayToHexArray(finalMessage);;
 
-    // console.log("finalMessage", hexArray);
     return hexArray;
 }
